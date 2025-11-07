@@ -1,0 +1,6 @@
+@TrainingHub.CourseService.Presentation_HostAddress = http://localhost:5263
+
+GET {{TrainingHub.CourseService.Presentation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
