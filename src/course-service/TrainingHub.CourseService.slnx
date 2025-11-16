@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TrainingHub.CourseService.Application/TrainingHub.CourseService.Application.csproj" />
+    <Project Path="src/TrainingHub.CourseService.Domain/TrainingHub.CourseService.Domain.csproj" />
+    <Project Path="src/TrainingHub.CourseService.Infrastructure/TrainingHub.CourseService.Infrastructure.csproj" />
+    <Project Path="src/TrainingHub.CourseService.Presentation/TrainingHub.CourseService.Presentation.csproj" />
+    <Project Path="src/TrainingHub.CourseService.Worker.ML/TrainingHub.CourseService.Worker.ML.csproj" />
+    <Project Path="src/TrainingHub.CourseService.Worker.Quartz/TrainingHub.CourseService.Worker.Quartz.csproj" />
+  </Folder>
+</Solution>
