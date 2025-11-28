@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TrainingHub.ApiGateway.Tests/TrainingHub.ApiGateway.Tests.csproj" />
+  <Project Path="TrainingHub.ApiGateway/TrainingHub.ApiGateway.csproj" />
+</Solution>

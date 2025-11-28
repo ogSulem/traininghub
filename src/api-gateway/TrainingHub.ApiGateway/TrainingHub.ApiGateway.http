@@ -1,0 +1,6 @@
+@TrainingHub.ApiGateway_HostAddress = http://localhost:5280
+
+GET {{TrainingHub.ApiGateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
