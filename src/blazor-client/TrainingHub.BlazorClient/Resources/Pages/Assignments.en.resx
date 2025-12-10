@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="http://www.w3.org/2001/XMLSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve">
+    <value>Assignments</value>
+  </data>
+  <data name="CourseFilter" xml:space="preserve">
+    <value>Course</value>
+  </data>
+  <data name="StatusFilter" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="StatusAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="StatusPlanned" xml:space="preserve">
+    <value>Planned</value>
+  </data>
+  <data name="StatusCompleted" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="StatusOverdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+  <data name="AssignmentsTableHeader" xml:space="preserve">
+    <value>Assignments</value>
+  </data>
+  <data name="EmptyAssignments" xml:space="preserve">
+    <value>No assignments found.</value>
+  </data>
+  <data name="AssignmentTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="DueDate" xml:space="preserve">
+    <value>Due date</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+</root>

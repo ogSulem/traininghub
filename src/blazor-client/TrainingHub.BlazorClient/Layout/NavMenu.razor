@@ -1,0 +1,51 @@
+﻿@using System.Globalization
+@inject Microsoft.Extensions.Localization.IStringLocalizer<NavMenu> L
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<div class="top-nav navbar navbar-dark px-3">
+    <div class="nav-left d-flex align-items-center">
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @L["Home"]
+        </NavLink>
+        <NavLink class="nav-link" href="courses">
+            <span class="bi bi-journal-bookmark-fill" aria-hidden="true"></span> @L["Courses"]
+        </NavLink>
+        <NavLink class="nav-link" href="assignments">
+            <span class="bi bi-check2-square" aria-hidden="true"></span> @L["Assignments"]
+        </NavLink>
+    </div>
+
+    <div class="nav-center text-center flex-grow-1">
+        <a class="navbar-brand" href="">@L["Brand"]</a>
+    </div>
+
+    <div class="nav-right d-flex align-items-center">
+        <button type="button"
+                class="lang-button @(IsRussian ? "active" : null)"
+                @onclick="SetRussian">
+            RU
+        </button>
+        <button type="button"
+                class="lang-button @(IsEnglish ? "active" : null)"
+                @onclick="SetEnglish">
+            EN
+        </button>
+    </div>
+</div>
+
+@code {
+    private static bool IsRussian => CultureInfo.CurrentUICulture.Name.StartsWith("ru", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsEnglish => CultureInfo.CurrentUICulture.Name.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+
+    private Task SetRussian() => ChangeCulture("ru-RU");
+
+    private Task SetEnglish() => ChangeCulture("en-US");
+
+    private async Task ChangeCulture(string culture)
+    {
+        await JS.InvokeVoidAsync("blazorCulture.set", culture);
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+}

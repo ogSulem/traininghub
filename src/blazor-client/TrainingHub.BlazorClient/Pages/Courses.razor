@@ -1,0 +1,122 @@
+﻿@page "/courses"
+@inject ICourseApiClient CourseApi
+@inject IStringLocalizer<Courses> L
+
+<PageTitle>@L["Title"]</PageTitle>
+
+<section class="hero">
+    <h1>@L["Title"]</h1>
+    <button class="btn btn-secondary" @onclick="LoadCourses">@L["Refresh"]</button>
+</section>
+
+<div class="courses-grid">
+    <section class="card">
+        <header>
+            <h2>@L["AvailableCourses"]</h2>
+        </header>
+        @if (isLoading)
+        {
+            <p>Loading...</p>
+        }
+        else if (courses.Count == 0)
+        {
+            <p>@L["EmptyCourses"]</p>
+        }
+        else
+        {
+            <ul class="list">
+                @foreach (var course in courses)
+                {
+                    <li class="list-item @(selectedCourse?.Id == course.Id ? "selected" : null)" @onclick="() => SelectCourseAsync(course)">
+                        <div>
+                            <strong>@course.Title</strong>
+                            <p>@course.Description</p>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="card">
+        <header>
+            <h2>@L["DetailsHeader"]</h2>
+        </header>
+        @if (selectedCourseDetails is null)
+        {
+            <p>@L["SelectHint"]</p>
+        }
+        else
+        {
+            <article class="course-details">
+                <h3>@selectedCourseDetails.Title</h3>
+                <p>@selectedCourseDetails.Description</p>
+                <h4>@L["AssignmentsHeader"]</h4>
+                @if ((selectedCourseDetails.Assignments?.Count ?? 0) == 0)
+                {
+                    <p>@L["NoAssignments"]</p>
+                }
+                else
+                {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>@L["AssignmentTitle"]</th>
+                                <th>@L["DueDate"]</th>
+                                <th>@L["Status"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assignment in selectedCourseDetails.Assignments ?? Array.Empty<AssignmentDto>())
+                            {
+                                <tr>
+                                    <td>@assignment.Title</td>
+                                    <td>@assignment.DueDate.ToShortDateString()</td>
+                                    <td>@assignment.Status</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </article>
+        }
+    </section>
+</div>
+
+@code {
+    private readonly List<CourseDto> courses = new();
+    private CourseDto? selectedCourse;
+    private CourseDetailsDto? selectedCourseDetails;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCourses();
+    }
+
+    private async Task LoadCourses()
+    {
+        isLoading = true;
+        selectedCourseDetails = null;
+        courses.Clear();
+        courses.AddRange(await CourseApi.GetPopularCoursesAsync(10));
+        selectedCourse = courses.FirstOrDefault();
+        if (selectedCourse is not null)
+        {
+            await LoadCourseDetails(selectedCourse.Id);
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadCourseDetails(Guid courseId)
+    {
+        selectedCourseDetails = await CourseApi.GetCourseAsync(courseId);
+    }
+
+    private async Task SelectCourseAsync(CourseDto course)
+    {
+        selectedCourse = course;
+        selectedCourseDetails = null;
+        await LoadCourseDetails(course.Id);
+    }
+}

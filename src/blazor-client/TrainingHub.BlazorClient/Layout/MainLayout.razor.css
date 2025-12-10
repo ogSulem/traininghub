@@ -1,0 +1,23 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.main-shell {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 1rem 2.5rem;
+}
+
+.content {
+    width: 100%;
+    max-width: 1200px;
+}

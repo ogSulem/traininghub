@@ -1,0 +1,163 @@
+@page "/assignments"
+@inject ICourseApiClient CourseApi
+@inject INotificationHubClient NotificationHub
+@inject IStringLocalizer<Assignments> L
+
+<PageTitle>@L["Title"]</PageTitle>
+
+<section class="hero">
+    <h1>@L["Title"]</h1>
+    <button class="btn btn-secondary" @onclick="LoadAssignments">@L["Refresh"]</button>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(lastNotificationMessage))
+{
+    <div class="alert alert-info" role="alert">
+        @lastNotificationMessage
+    </div>
+}
+
+<div class="filters-grid">
+    <div class="filter">
+        <label>@L["CourseFilter"]</label>
+        <InputSelect class="form-control" @bind-Value="selectedCourseId" @onchange="OnCourseChanged">
+            <option value="">--</option>
+            @foreach (var course in courses)
+            {
+                <option value="@course.Id">@course.Title</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="filter">
+        <label>@L["StatusFilter"]</label>
+        <InputSelect class="form-control" @bind-Value="selectedStatus" @onchange="_ => StateHasChanged()">
+            <option value="All">@L["StatusAll"]</option>
+            <option value="Planned">@L["StatusPlanned"]</option>
+            <option value="Completed">@L["StatusCompleted"]</option>
+            <option value="Overdue">@L["StatusOverdue"]</option>
+        </InputSelect>
+    </div>
+</div>
+
+<section class="card">
+    <header>
+        <h2>@L["AssignmentsTableHeader"]</h2>
+    </header>
+    @if (isLoading)
+    {
+        <p>Loading...</p>
+    }
+    else if (FilteredAssignments.Count == 0)
+    {
+        <p>@L["EmptyAssignments"]</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>@L["AssignmentTitle"]</th>
+                    <th>@L["Description"]</th>
+                    <th>@L["DueDate"]</th>
+                    <th>@L["Status"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var assignment in FilteredAssignments)
+                {
+                    <tr>
+                        <td>@assignment.Title</td>
+                        <td>@assignment.Description</td>
+                        <td>@assignment.DueDate.ToShortDateString()</td>
+                        <td>@GetStatusLabel(assignment.Status)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private readonly List<CourseDto> courses = new();
+    private List<AssignmentDto> assignments = new();
+    private Guid? selectedCourseId;
+    private string selectedStatus = "All";
+    private bool isLoading = true;
+    private string? lastNotificationMessage;
+
+    private IReadOnlyList<AssignmentDto> FilteredAssignments => assignments
+        .Where(a => selectedStatus == "All" || GetStatusFilterValue(a.Status) == selectedStatus)
+        .ToList();
+
+    private string GetStatusLabel(int status) => status switch
+    {
+        0 => L["StatusPlanned"],
+        1 => L["StatusCompleted"],
+        2 => L["StatusOverdue"],
+        _ => L["StatusPlanned"]
+    };
+
+    private static string GetStatusFilterValue(int status) => status switch
+    {
+        0 => "Planned",
+        1 => "Completed",
+        2 => "Overdue",
+        _ => "Planned"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        NotificationHub.OnAssignmentScheduled += HandleAssignmentScheduledAsync;
+        await NotificationHub.StartAsync();
+        await LoadCourses();
+        await LoadAssignments();
+    }
+
+    private async Task LoadCourses()
+    {
+        courses.Clear();
+        courses.AddRange(await CourseApi.GetPopularCoursesAsync(10));
+        selectedCourseId ??= courses.FirstOrDefault()?.Id;
+    }
+
+    private async Task LoadAssignments()
+    {
+        if (!selectedCourseId.HasValue)
+        {
+            assignments = new List<AssignmentDto>();
+            isLoading = false;
+            StateHasChanged();
+            return;
+        }
+
+        isLoading = true;
+        assignments = (await CourseApi.GetAssignmentsAsync(selectedCourseId.Value)).ToList();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnCourseChanged(ChangeEventArgs _)
+    {
+        await LoadAssignments();
+    }
+
+    private async Task HandleAssignmentScheduledAsync(AssignmentNotificationDto notification)
+    {
+        lastNotificationMessage = $"{DateTime.Now:HH:mm:ss} SignalR: {notification.Title}";
+
+        if (selectedCourseId == notification.CourseId)
+        {
+            await LoadAssignments();
+        }
+        else
+        {
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        NotificationHub.OnAssignmentScheduled -= HandleAssignmentScheduledAsync;
+        await NotificationHub.DisposeAsync();
+    }
+}

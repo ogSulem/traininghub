@@ -1,0 +1,269 @@
+﻿@page "/"
+@inject ICourseApiClient CourseApi
+@inject INotificationHubClient NotificationHub
+@inject IStringLocalizer<Home> L
+
+<PageTitle>@L["DashboardTitle"]</PageTitle>
+
+<section class="hero">
+    <h1>@L["DashboardTitle"]</h1>
+    <p>@L["HeroSubtitle"]</p>
+    <button class="btn btn-secondary" @onclick="LoadDashboard">@L["Refresh"]</button>
+</section>
+
+<div class="dashboard-grid">
+    <section class="card">
+        <header>
+            <h2>@L["PopularCourses"]</h2>
+        </header>
+        @if (isLoading)
+        {
+            <p>Loading...</p>
+        }
+        else if (popularCourses.Count == 0)
+        {
+            <p>@L["NoCourses"]</p>
+        }
+        else
+        {
+            <ul class="list">
+                @foreach (var course in popularCourses)
+                {
+                    <li @onclick="() => SelectCourse(course)" class="list-item @(selectedCourse?.Id == course.Id ? "selected" : null)">
+                        <div>
+                            <strong>@course.Title</strong>
+                            <p>@course.Description</p>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="card">
+        <header>
+            <h2>@L["UpcomingAssignments"]</h2>
+        </header>
+        @if (selectedAssignments.Count == 0)
+        {
+            <p>@L["NoAssignments"]</p>
+        }
+        else
+        {
+            <ul class="list">
+                @foreach (var assignment in selectedAssignments)
+                {
+                    <li class="list-item">
+                        <div>
+                            <strong>@assignment.Title</strong>
+                            <p>@assignment.Description</p>
+                        </div>
+                        <span>@assignment.DueDate.ToShortDateString()</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</div>
+
+<div class="forms-grid">
+    <section class="card">
+        <header>
+            <h2>@L["CreateCourseTitle"]</h2>
+        </header>
+        <EditForm Model="createCourse" OnValidSubmit="CreateCourseAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-group">
+                <label>@L["CourseNameLabel"]</label>
+                <InputText class="form-control" @bind-Value="createCourse.Title" />
+            </div>
+            <div class="form-group">
+                <label>@L["DescriptionLabel"]</label>
+                <InputTextArea class="form-control" @bind-Value="createCourse.Description" />
+            </div>
+            <div class="form-group">
+                <label>@L["StartDateLabel"]</label>
+                <InputDate class="form-control" @bind-Value="createCourse.StartsAt" />
+            </div>
+            <div class="form-group">
+                <label>@L["EndDateLabel"]</label>
+                <InputDate class="form-control" @bind-Value="createCourse.EndsAt" />
+            </div>
+            <button class="btn btn-primary" type="submit">@L["CreateCourseButton"]</button>
+        </EditForm>
+    </section>
+
+    <section class="card">
+        <header>
+            <h2>@L["ScheduleAssignmentTitle"]</h2>
+        </header>
+        <EditForm Model="scheduleAssignment" OnValidSubmit="ScheduleAssignmentAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-group">
+                <label>@L["SelectCourseLabel"]</label>
+                <InputSelect class="form-control" @bind-Value="scheduleAssignment.CourseId">
+                    <option value="">--</option>
+                    @foreach (var course in popularCourses)
+                    {
+                        <option value="@course.Id">@course.Title</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="form-group">
+                <label>@L["AssignmentTitleLabel"]</label>
+                <InputText class="form-control" @bind-Value="scheduleAssignment.Title" />
+            </div>
+            <div class="form-group">
+                <label>@L["DueDateLabel"]</label>
+                <InputDate class="form-control" @bind-Value="scheduleAssignment.DueDate" />
+            </div>
+            <div class="form-group">
+                <label>@L["DescriptionLabel"]</label>
+                <InputTextArea class="form-control" @bind-Value="scheduleAssignment.Description" />
+            </div>
+            <button class="btn btn-primary" type="submit">@L["ScheduleAssignmentButton"]</button>
+        </EditForm>
+    </section>
+</div>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert alert-success">@statusMessage</div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<CourseDto> popularCourses = new();
+    private List<AssignmentDto> selectedAssignments = new();
+    private CourseDto? selectedCourse;
+    private readonly CreateCourseModel createCourse = new();
+    private readonly ScheduleAssignmentModel scheduleAssignment = new();
+    private string? statusMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        NotificationHub.OnAssignmentScheduled += HandleAssignmentScheduledAsync;
+        await NotificationHub.StartAsync();
+        await LoadDashboard();
+    }
+
+    private async Task LoadDashboard()
+    {
+        isLoading = true;
+        statusMessage = null;
+        popularCourses = (await CourseApi.GetPopularCoursesAsync()).ToList();
+        selectedCourse ??= popularCourses.FirstOrDefault();
+        if (selectedCourse is not null)
+        {
+            await LoadAssignments(selectedCourse.Id);
+        }
+        else
+        {
+            selectedAssignments.Clear();
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadAssignments(Guid courseId)
+    {
+        selectedAssignments = (await CourseApi.GetAssignmentsAsync(courseId)).ToList();
+    }
+
+    private void SelectCourse(CourseDto course)
+    {
+        selectedCourse = course;
+        _ = LoadAssignments(course.Id);
+    }
+
+    private async Task CreateCourseAsync()
+    {
+        var request = new CreateCourseRequest(createCourse.Title, createCourse.Description, createCourse.StartsAt, createCourse.EndsAt);
+        var result = await CourseApi.CreateCourseAsync(request);
+        if (result.HasValue)
+        {
+            statusMessage = L["StatusCourseCreated"];
+            createCourse.Reset();
+            await LoadDashboard();
+        }
+    }
+
+    private async Task ScheduleAssignmentAsync()
+    {
+        if (!scheduleAssignment.CourseId.HasValue)
+        {
+            return;
+        }
+
+        var request = new ScheduleAssignmentRequest(scheduleAssignment.Title, scheduleAssignment.DueDate, scheduleAssignment.Description);
+        var result = await CourseApi.ScheduleAssignmentAsync(scheduleAssignment.CourseId.Value, request);
+        if (result.HasValue)
+        {
+            statusMessage = L["StatusAssignmentScheduled"];
+            scheduleAssignment.Reset();
+            await LoadAssignments(scheduleAssignment.CourseId.Value);
+        }
+    }
+
+    private async Task HandleAssignmentScheduledAsync(AssignmentNotificationDto notification)
+    {
+        if (selectedCourse?.Id == notification.CourseId)
+        {
+            await LoadAssignments(notification.CourseId);
+            statusMessage = $"{notification.Title} scheduled!";
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        NotificationHub.OnAssignmentScheduled -= HandleAssignmentScheduledAsync;
+        await NotificationHub.DisposeAsync();
+    }
+
+    private class CreateCourseModel
+    {
+        [Required]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime StartsAt { get; set; } = DateTime.Today;
+
+        [Required]
+        public DateTime EndsAt { get; set; } = DateTime.Today.AddDays(30);
+
+        public void Reset()
+        {
+            Title = string.Empty;
+            Description = string.Empty;
+            StartsAt = DateTime.Today;
+            EndsAt = DateTime.Today.AddDays(30);
+        }
+    }
+
+    private class ScheduleAssignmentModel
+    {
+        [Required]
+        public Guid? CourseId { get; set; }
+
+        [Required]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime DueDate { get; set; } = DateTime.Today.AddDays(7);
+
+        public string Description { get; set; } = string.Empty;
+
+        public void Reset()
+        {
+            Title = string.Empty;
+            Description = string.Empty;
+            DueDate = DateTime.Today.AddDays(7);
+        }
+    }
+}
