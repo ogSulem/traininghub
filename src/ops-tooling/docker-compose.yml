@@ -1,0 +1,171 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: traininghub
+      POSTGRES_PASSWORD: traininghub
+      POSTGRES_DB: traininghub
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traininghub -d traininghub"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  seq:
+    image: datalust/seq:latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    volumes:
+      - seq_data:/data
+    ports:
+      - "8081:80"
+      - "5341:5341"
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  course-service:
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: course-service/src/TrainingHub.CourseService.Presentation/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__TrainingHub: Host=postgres;Database=traininghub;Username=traininghub;Password=traininghub
+      ConnectionStrings__Redis: redis:6379
+      Messaging__RabbitMQ__HostName: rabbitmq
+      Messaging__RabbitMQ__Exchange: traininghub.assignments
+      Services__NotificationGateway__BaseAddress: http://api-gateway:5000
+      Serilog__WriteTo__1__Args__serverUrl: http://seq:5341
+    volumes:
+      - ml_models:/app/models:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api-gateway:
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: api-gateway/TrainingHub.ApiGateway/Dockerfile
+    depends_on:
+      course-service:
+        condition: service_healthy
+      seq:
+        condition: service_healthy
+    environment:
+      Services__CourseService: http://course-service:8080
+      Serilog__WriteTo__1__Args__serverUrl: http://seq:5341
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:5000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  course-service-worker-quartz:
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: course-service/src/TrainingHub.CourseService.Worker.Quartz/Dockerfile
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_healthy
+    environment:
+      Services__CourseService: http://course-service:8080
+      Services__NotificationGateway__BaseAddress: http://api-gateway:5000
+      Quartz__DailyReminderCron: 0 0/1 * * * ?
+      Serilog__WriteTo__1__Args__serverUrl: http://seq:5341
+
+  course-service-worker-ml:
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: course-service/src/TrainingHub.CourseService.Worker.ML/Dockerfile
+    depends_on:
+      course-service:
+        condition: service_healthy
+      seq:
+        condition: service_healthy
+    volumes:
+      - ml_models:/app/models
+    environment:
+      Model__CourseServiceBaseAddress: http://course-service:8080
+      Model__TrainingDataEndpoint: /analytics/assignments/training
+      Model__ModelOutputPath: /app/models/assignment-model.zip
+      Model__RefreshHours: 6
+      Serilog__WriteTo__1__Args__serverUrl: http://seq:5341
+
+  blazor-client:
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: blazor-client/TrainingHub.BlazorClient/Dockerfile
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    environment:
+      Services__ApiGateway: http://api-gateway:5000
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data: {}
+  seq_data: {}
+  ml_models: {}

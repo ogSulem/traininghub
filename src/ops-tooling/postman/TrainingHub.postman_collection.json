@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "TrainingHub",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create course",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const now = new Date();",
+              "const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);",
+              "pm.collectionVariables.set('today', now.toISOString());",
+              "pm.collectionVariables.set('tomorrow', tomorrow.toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create course status is 201', function () { pm.response.to.have.status(201); });",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) { json = {}; }",
+              "const id = json.id || json.Id || json.courseId || json.CourseId;",
+              "if (id) { pm.collectionVariables.set('courseId', id); }",
+              "pm.test('courseId is set', function () { pm.expect(pm.collectionVariables.get('courseId')).to.not.be.empty; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Data Science 101\",\n  \"description\": \"Intro training\",\n  \"startsAt\": \"{{today}}\",\n  \"endsAt\": \"{{tomorrow}}\"\n}"
+        },
+        "url": {
+          "raw": "{{gateway}}/courses",
+          "host": ["{{gateway}}"],
+          "path": ["courses"]
+        }
+      }
+    },
+    {
+      "name": "Get course",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get course status is 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{gateway}}/courses/{{courseId}}",
+          "host": ["{{gateway}}"],
+          "path": ["courses", "{{courseId}}"]
+        }
+      }
+    },
+    {
+      "name": "Schedule assignment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Schedule assignment status is 201', function () { pm.response.to.have.status(201); });",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) { json = {}; }",
+              "const id = json.id || json.Id || json.assignmentId || json.AssignmentId;",
+              "if (id) { pm.collectionVariables.set('assignmentId', id); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Lab 1\",\n  \"dueDate\": \"{{tomorrow}}\",\n  \"description\": \"Complete labs\"\n}"
+        },
+        "url": {
+          "raw": "{{gateway}}/courses/{{courseId}}/assignments",
+          "host": ["{{gateway}}"],
+          "path": ["courses", "{{courseId}}", "assignments"]
+        }
+      }
+    },
+    {
+      "name": "Get training data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get training data status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Training data is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{courseService}}/analytics/assignments/training",
+          "host": ["{{courseService}}"],
+          "path": ["analytics", "assignments", "training"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "gateway",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "courseService",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "today",
+      "value": "2025-12-14T09:00:00Z"
+    },
+    {
+      "key": "tomorrow",
+      "value": "2025-12-15T09:00:00Z"
+    },
+    {
+      "key": "courseId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "assignmentId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}
