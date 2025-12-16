@@ -1,0 +1,61 @@
+# .NET
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.log
+*.pdb
+*.mdb
+*.ilk
+*.exe
+*.dll
+*.app
+*.msix
+*.msixbundle
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+.vscode/
+
+# ASP.NET Core
+appsettings.*.json.user
+
+# NuGet
+*.nupkg
+packages/
+
+**/wwwroot/_framework/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+**/docker-compose.override.yml
+
+# Node / front-end
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test results
+TestResults/
+
+# Publish artifacts
+publish/
+**/publish/
+
+# Coverage
+coverage/
+**/coverage/

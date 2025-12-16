@@ -1,0 +1,10 @@
+* text=auto
+
+# Keep shell scripts consistent
+*.sh text eol=lf
+
+# Configs typically used in Linux containers
+*.yml text eol=lf
+*.yaml text eol=lf
+*.Dockerfile text eol=lf
+Dockerfile text eol=lf

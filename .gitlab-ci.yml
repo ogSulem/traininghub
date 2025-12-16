@@ -1,0 +1,73 @@
+stages:
+  - build
+  - test
+  - publish
+
+variables:
+  DOTNET_VERSION: "10.0.100"
+
+.dotnet:
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  before_script:
+    - dotnet --version
+
+build:
+  stage: build
+  extends: .dotnet
+  script:
+    - dotnet restore src/api-gateway/TrainingHub.ApiGateway/TrainingHub.ApiGateway.csproj
+    - dotnet restore src/course-service/src/TrainingHub.CourseService.Presentation/TrainingHub.CourseService.Presentation.csproj
+    - dotnet restore src/blazor-client/TrainingHub.BlazorClient/TrainingHub.BlazorClient.csproj
+    - dotnet build src/api-gateway/TrainingHub.ApiGateway/TrainingHub.ApiGateway.csproj -c Release --no-restore
+    - dotnet build src/course-service/src/TrainingHub.CourseService.Presentation/TrainingHub.CourseService.Presentation.csproj -c Release --no-restore
+    - dotnet build src/blazor-client/TrainingHub.BlazorClient/TrainingHub.BlazorClient.csproj -c Release --no-restore
+
+tests:
+  stage: test
+  extends: .dotnet
+  script:
+    - dotnet test src/api-gateway/TrainingHub.ApiGateway.Tests/TrainingHub.ApiGateway.Tests.csproj -c Release --logger "trx;LogFileName=api_gateway_tests.trx"
+    - dotnet test src/blazor-client/TrainingHub.BlazorClient.Tests/TrainingHub.BlazorClient.Tests.csproj -c Release --logger "trx;LogFileName=blazor_client_tests.trx"
+  artifacts:
+    when: always
+    paths:
+      - "**/TestResults/*.trx"
+
+postman-newman:
+  stage: test
+  image: node:20-alpine
+  when: manual
+  allow_failure: true
+  variables:
+    GATEWAY_URL: "http://localhost:5000"
+    COURSE_SERVICE_URL: "http://localhost:8080"
+  script:
+    - npm i -g newman
+    - newman run src/ops-tooling/postman/TrainingHub.postman_collection.json --env-var "gateway=$GATEWAY_URL" --env-var "courseService=$COURSE_SERVICE_URL"
+
+publish-course-service:
+  stage: publish
+  extends: .dotnet
+  script:
+    - dotnet publish src/course-service/src/TrainingHub.CourseService.Presentation/TrainingHub.CourseService.Presentation.csproj -c Release -o publish/course-service
+  artifacts:
+    paths:
+      - publish/course-service
+
+publish-api-gateway:
+  stage: publish
+  extends: .dotnet
+  script:
+    - dotnet publish src/api-gateway/TrainingHub.ApiGateway/TrainingHub.ApiGateway.csproj -c Release -o publish/api-gateway
+  artifacts:
+    paths:
+      - publish/api-gateway
+
+publish-blazor-client:
+  stage: publish
+  extends: .dotnet
+  script:
+    - dotnet publish src/blazor-client/TrainingHub.BlazorClient/TrainingHub.BlazorClient.csproj -c Release -o publish/blazor-client
+  artifacts:
+    paths:
+      - publish/blazor-client

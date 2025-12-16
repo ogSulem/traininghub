@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.100"
+          include-prerelease: true
+
+      - name: Restore
+        run: |
+          dotnet restore src/api-gateway/TrainingHub.ApiGateway/TrainingHub.ApiGateway.csproj
+          dotnet restore src/course-service/src/TrainingHub.CourseService.Presentation/TrainingHub.CourseService.Presentation.csproj
+          dotnet restore src/blazor-client/TrainingHub.BlazorClient/TrainingHub.BlazorClient.csproj
+
+      - name: Build
+        run: |
+          dotnet build src/api-gateway/TrainingHub.ApiGateway/TrainingHub.ApiGateway.csproj -c Release --no-restore
+          dotnet build src/course-service/src/TrainingHub.CourseService.Presentation/TrainingHub.CourseService.Presentation.csproj -c Release --no-restore
+          dotnet build src/blazor-client/TrainingHub.BlazorClient/TrainingHub.BlazorClient.csproj -c Release --no-restore
+
+      - name: Test
+        run: |
+          dotnet test src/api-gateway/TrainingHub.ApiGateway.Tests/TrainingHub.ApiGateway.Tests.csproj -c Release --logger "trx;LogFileName=api_gateway_tests.trx" --results-directory "TestResults"
+          dotnet test src/blazor-client/TrainingHub.BlazorClient.Tests/TrainingHub.BlazorClient.Tests.csproj -c Release --logger "trx;LogFileName=blazor_client_tests.trx" --results-directory "TestResults"
+
+      - name: Upload TestResults
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/TestResults/*.trx
+            TestResults/*.trx
+            **/*.trx
+          if-no-files-found: warn
