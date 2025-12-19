@@ -66,10 +66,10 @@ MVP демонстрирует полный перечень технологи�
 
 | Участник | Зона ответственности | Каталоги |
 |----------|----------------------|----------|
-|**Алексей (API)**|Minimal API, SignalR, локализация, Serilog, Swagger, Postman|`src/api-gateway`|
-|**Борис (Core)**|CQRS/MediatR, PostgreSQL/EF Core, Redis, RabbitMQ, Quartz, ML.NET|`src/course-service`|
-|**Кира (Client)**|Blazor UI, тёмная тема, локализация, SignalR клиент, bUnit/xUnit|`src/blazor-client`|
-|**Денис (Ops)**|Docker Compose, GitLab CI, Postman/newman автотесты, README/инструкции|`src/ops-tooling`|
+|**(API)**|Minimal API, SignalR, локализация, Serilog, Swagger, Postman|`src/api-gateway`|
+|**(Core)**|CQRS/MediatR, PostgreSQL/EF Core, Redis, RabbitMQ, Quartz, ML.NET|`src/course-service`|
+|**(Client)**|Blazor UI, тёмная тема, локализация, SignalR клиент, bUnit/xUnit|`src/blazor-client`|
+|**(Ops)**|Docker Compose, GitLab CI, Postman/newman автотесты, README/инструкции|`src/ops-tooling`|
 
 ## Quick start
 
